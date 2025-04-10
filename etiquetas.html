@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Programa de Controle de Geração de Etiquetas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #007aff;
+      --secondary-color: #5ac8fa;
+      --success-color: #34c759;
+      --danger-color: #ff3b30;
+      --warning-color: #ff9500;
+      --info-color: #5856d6;
+      --custom-outros-color: #8e44ad; /* cor para o botão Outros */
+      --background-color: #f5f5f7;
+      --card-background: #ffffff;
+      --text-color: #1d1d1f;
+      --border-radius: 10px;
+      --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--background-color);
+      color: var(--text-color);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background-color: var(--card-background);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #0062cc;
+    }
+
+    .btn-success {
+      background-color: var(--success-color);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #2aa147;
+    }
+
+    .btn-danger {
+      background-color: var(--danger-color);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #d9312b;
+    }
+
+    .btn-warning {
+      background-color: var(--warning-color);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background-color: #cc7a00;
+    }
+
+    .btn-info {
+      background-color: var(--info-color);
+      color: white;
+    }
+
+    .btn-info:hover {
+      background-color: #4745ac;
+    }
+
+    .reason-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    .reason-btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    /* Destaque visual quando o botão estiver ativo */
+    .reason-btn.active {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+    }
+
+    /* Ordem e cores definidas para cada motivo */
+    .reason-btn-excluida {
+      background-color: var(--danger-color);
+      color: white;
+    }
+    .reason-btn-errada {
+      background-color: var(--warning-color);
+      color: white;
+    }
+    .reason-btn-sem-etiqueta {
+      background-color: var(--info-color);
+      color: white;
+    }
+    .reason-btn-clonada {
+      background-color: var(--success-color);
+      color: white;
+    }
+    .reason-btn-reprocesso {
+      background-color: var(--secondary-color);
+      color: white;
+    }
+    .reason-btn-outros {
+      background-color: var(--custom-outros-color);
+      color: white;
+    }
+
+    .shift-toggle {
+      display: flex;
+      background-color: #e0e0e0;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+
+    .shift-toggle button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background-color: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .shift-toggle button.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: var(--box-shadow);
+    }
+
+    table th, table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+
+    .label-info {
+      margin-top: 5px;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .label-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .label-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+    }
+
+    .badge-excluida {
+      background-color: var(--danger-color);
+    }
+
+    .badge-errada {
+      background-color: var(--warning-color);
+    }
+
+    .badge-sem-etiqueta {
+      background-color: var(--info-color);
+    }
+
+    .badge-clonada {
+      background-color: var(--success-color);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 20px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .date-nav button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--primary-color);
+    }
+
+    .date-display {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab.active {
+      border-bottom-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .total-box {
+      background-color: #f8f9fa;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .total-label {
+      font-weight: 600;
+    }
+
+    .total-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    /* Estilo para exibir a última etiqueta adicionada */
+    #last-label-container {
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #e9ecef;
+      border-radius: var(--border-radius);
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    /* Container para os dados detalhados (tabela e total) que será controlado pelo botão de toggle */
+    #detailed-data-container {
+      margin-bottom: 15px;
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .reason-btns {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Programa de Controle de Geração de Etiquetas</h1>
+    </div>
+    
+    <!-- Card de Registro -->
+    <div class="card">
+      <!-- Campo de Data (inicia em branco) -->
+      <div class="form-group">
+        <label for="date">Data:</label>
+        <input type="date" id="date" class="form-control" value="">
+      </div>
+      <!-- Seleção de Turno -->
+      <div class="shift-toggle">
+        <button id="shift1" class="active">Primeiro Turno</button>
+        <button id="shift2">Segundo Turno</button>
+      </div>
+      <!-- Código do Produto e Quantidade -->
+      <div class="form-row">
+        <div class="form-group" style="flex: 2;">
+          <label for="code">Código do Produto:</label>
+          <input type="text" id="code" class="form-control" placeholder="Digite o código do produto">
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="quantity">Quantidade:</label>
+          <input type="number" id="quantity" class="form-control" placeholder="Qtd" min="1" value="1">
+        </div>
+      </div>
+      <!-- Botões de Motivo na ordem definida -->
+      <div class="form-group">
+        <label>Selecione o motivo:</label>
+        <div class="reason-btns">
+          <button id="reason-excluida" class="reason-btn reason-btn-excluida">Etiqueta Excluída</button>
+          <button id="reason-errada" class="reason-btn reason-btn-errada">Etiqueta Errada</button>
+          <button id="reason-sem-etiqueta" class="reason-btn reason-btn-sem-etiqueta">Caixa Sem Etiqueta</button>
+          <button id="reason-clonada" class="reason-btn reason-btn-clonada">Etiqueta Clonada</button>
+          <button id="reason-reprocesso" class="reason-btn reason-btn-reprocesso">Reprocesso</button>
+          <button id="reason-outros" class="reason-btn reason-btn-outros">Outros</button>
+        </div>
+        <!-- Campo para motivo personalizado (exibido quando "Outros" é selecionado) -->
+        <div id="custom-reason-container" style="display:none; margin-top:10px;">
+          <label for="custom-reason">Digite o motivo personalizado:</label>
+          <input type="text" id="custom-reason" class="form-control" placeholder="Motivo personalizado">
+        </div>
+      </div>
+      <button id="add-btn" class="btn btn-primary">Adicionar</button>
+    </div>
+
+    <!-- Card de Dados Atuais e Relatórios -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="current-data">Dados Atuais</button>
+        <button class="tab" data-tab="reports">Relatórios</button>
+      </div>
+
+      <div id="current-data" class="tab-content active">
+        <!-- Exibe a última etiqueta adicionada (sempre visível) -->
+        <div id="last-label-container">
+          <strong>Última Etiqueta Adicionada:</strong> <span id="last-label">Nenhuma</span>
+        </div>
+        <!-- Botão para expandir/ocultar os dados detalhados -->
+        <button id="toggle-details" class="btn btn-info" style="margin-bottom: 10px;">Ocultar Detalhes</button>
+        <!-- Botão para excluir os dados do dia (posicionado à direita) -->
+        <button id="delete-day" class="btn btn-danger" style="float: right; margin-bottom: 10px;">Excluir Dados do Dia</button>
+        <!-- Container que agrupa a tabela de dados diários e o total -->
+        <div id="detailed-data-container">
+          <div id="today-labels"></div>
+          <div class="total-box">
+            <div class="total-label">Total de etiquetas hoje:</div>
+            <div id="today-total" class="total-value">0</div>
+          </div>
+        </div>
+        <button id="reload-data" class="btn btn-info" style="margin-top: 10px;">Recarregar</button>
+      </div>
+
+      <div id="reports" class="tab-content">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="report-date">Data do Relatório:</label>
+            <input type="date" id="report-date" class="form-control" value="">
+          </div>
+          <div class="form-group">
+            <label for="report-shift">Turno:</label>
+            <select id="report-shift" class="form-control">
+              <option value="1">Primeiro Turno</option>
+              <option value="2">Segundo Turno</option>
+              <option value="all">Ambos os Turnos</option>
+            </select>
+          </div>
+        </div>
+        <button id="generate-report" class="btn btn-primary">Gerar Relatório</button>
+        <button id="export-pdf" class="btn btn-success">Exportar para PDF</button>
+        <div id="report-result" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Notificações -->
+  <div class="modal" id="notification-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Notificação</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-message"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="modal-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Função auxiliar para formatar datas no formato DD/MM/YYYY sem conversões de fuso
+    function formatDate(input) {
+      const parts = input.split("-");
+      if(parts.length === 3) {
+        return parts[2] + "/" + parts[1] + "/" + parts[0];
+      }
+      return input;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initApp();
+    });
+
+    function initApp() {
+      let currentShift = 1;
+      let selectedReason = null;
+      let labelData = {};
+
+      loadData();
+
+      // Toggle para expandir/ocultar o container de dados detalhados
+      document.getElementById('toggle-details').addEventListener('click', function() {
+        const container = document.getElementById('detailed-data-container');
+        if (container.style.display === 'none' || container.style.display === '') {
+          container.style.display = 'block';
+          this.textContent = 'Ocultar Detalhes';
+        } else {
+          container.style.display = 'none';
+          this.textContent = 'Mostrar Detalhes';
+        }
+      });
+
+      // Botão para excluir os dados do dia
+      document.getElementById('delete-day').addEventListener('click', function() {
+        const date = document.getElementById('date').value;
+        if (!date) {
+          showNotification('Por favor, selecione uma data.');
+          return;
+        }
+        if (confirm('Tem certeza de que deseja excluir todos os dados salvos para este dia?')) {
+          delete labelData[date];
+          saveData();
+          updateTodayLabels();
+          showNotification('Dados excluídos para a data ' + formatDate(date) + '.');
+          // Se a data for excluída, também atualiza o campo de relatório, se necessário.
+        }
+      });
+
+      document.getElementById('date').addEventListener('change', function() {
+        const selectedDate = this.value;
+        if (!selectedDate) {
+          showNotification('Por favor, selecione uma data.');
+          return;
+        }
+        document.getElementById('report-date').value = selectedDate;
+        if (labelData[selectedDate]) {
+          showNotification('Dados salvos encontrados para esta data. Dados carregados automaticamente.');
+        } else {
+          showNotification('Nenhum dado salvo para esta data. Inicie o registro.');
+        }
+        updateTodayLabels();
+      });
+
+      document.getElementById('reload-data').addEventListener('click', function() {
+        const date = document.getElementById('date').value;
+        if (!date) {
+          showNotification('Por favor, selecione uma data para recarregar os dados.');
+          return;
+        }
+        loadData();
+        updateTodayLabels();
+        showNotification('Dados recarregados para a data selecionada.');
+      });
+
+      document.getElementById('shift1').addEventListener('click', function() {
+        if (!checkDateSelected()) return;
+        saveCurrentData();
+        document.getElementById('shift1').classList.add('active');
+        document.getElementById('shift2').classList.remove('active');
+        currentShift = 1;
+        showNotification('Dados do turno anterior foram salvos. Você está agora no Primeiro Turno.');
+        updateTodayLabels();
+      });
+
+      document.getElementById('shift2').addEventListener('click', function() {
+        if (!checkDateSelected()) return;
+        saveCurrentData();
+        document.getElementById('shift2').classList.add('active');
+        document.getElementById('shift1').classList.remove('active');
+        currentShift = 2;
+        showNotification('Dados do turno anterior foram salvos. Você está agora no Segundo Turno.');
+        updateTodayLabels();
+      });
+
+      const reasonBtns = document.querySelectorAll('.reason-btn');
+      reasonBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          reasonBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          selectedReason = this.id.replace('reason-', '');
+          if (selectedReason === 'outros') {
+            document.getElementById('custom-reason-container').style.display = 'block';
+          } else {
+            document.getElementById('custom-reason-container').style.display = 'none';
+          }
+        });
+      });
+
+      document.getElementById('add-btn').addEventListener('click', addLabel);
+
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          const tabId = this.getAttribute('data-tab');
+          tabs.forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+          this.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+
+      document.querySelector('.modal-close').addEventListener('click', function() {
+        document.getElementById('notification-modal').style.display = 'none';
+      });
+      document.getElementById('modal-ok').addEventListener('click', function() {
+        document.getElementById('notification-modal').style.display = 'none';
+      });
+
+      document.getElementById('generate-report').addEventListener('click', generateReport);
+      document.getElementById('export-pdf').addEventListener('click', exportToPDF);
+
+      function checkDateSelected() {
+        const date = document.getElementById('date').value;
+        if (!date) {
+          showNotification('Por favor, selecione uma data.');
+          return false;
+        }
+        return true;
+      }
+
+      function showNotification(message) {
+        document.getElementById('modal-message').textContent = message;
+        document.getElementById('notification-modal').style.display = 'flex';
+      }
+
+      function addLabel() {
+        const date = document.getElementById('date').value;
+        if (!date) {
+          showNotification('Por favor, selecione uma data antes de adicionar etiquetas.');
+          return;
+        }
+        const code = document.getElementById('code').value.trim();
+        const quantity = parseInt(document.getElementById('quantity').value);
+        if (!code) {
+          showNotification('Por favor, digite um código de produto.');
+          return;
+        }
+        if (!selectedReason) {
+          showNotification('Por favor, selecione um motivo.');
+          return;
+        }
+        if (isNaN(quantity) || quantity <= 0) {
+          showNotification('Por favor, insira uma quantidade válida.');
+          return;
+        }
+        const dateKey = date;
+        const shiftKey = `shift${currentShift}`;
+        if (!labelData[dateKey]) {
+          labelData[dateKey] = {};
+        }
+        if (!labelData[dateKey][shiftKey]) {
+          labelData[dateKey][shiftKey] = {};
+        }
+        if (!labelData[dateKey][shiftKey][code]) {
+          labelData[dateKey][shiftKey][code] = {
+            excluida: 0,
+            errada: 0,
+            'sem-etiqueta': 0,
+            clonada: 0,
+            reprocesso: 0,
+            outros: {},
+            total: 0
+          };
+        }
+        let motivoExibido = "";
+        if (selectedReason === 'outros') {
+          const customReason = document.getElementById('custom-reason').value.trim();
+          if (!customReason) {
+            showNotification('Por favor, preencha o motivo personalizado para "Outros".');
+            return;
+          }
+          if (!labelData[dateKey][shiftKey][code].outros[customReason]) {
+            labelData[dateKey][shiftKey][code].outros[customReason] = 0;
+          }
+          labelData[dateKey][shiftKey][code].outros[customReason] += quantity;
+          motivoExibido = customReason;
+        } else {
+          labelData[dateKey][shiftKey][code][selectedReason] += quantity;
+          motivoExibido = selectedReason;
+        }
+        labelData[dateKey][shiftKey][code].total += quantity;
+        saveData();
+        updateTodayLabels();
+        document.getElementById('last-label').textContent = code + " - " + motivoExibido;
+        document.getElementById('code').value = '';
+        document.getElementById('quantity').value = '1';
+        document.getElementById('code').focus();
+        if (selectedReason === 'outros') {
+          document.getElementById('custom-reason').value = '';
+          document.getElementById('custom-reason-container').style.display = 'none';
+        }
+        showNotification(`${quantity} etiqueta(s) adicionada(s) para o código ${code}.`);
+      }
+
+      function saveCurrentData() {
+        saveData();
+      }
+
+      function updateTodayLabels() {
+        const date = document.getElementById('date').value;
+        if (!date) {
+          document.getElementById('today-labels').innerHTML = '<p>Por favor, selecione uma data.</p>';
+          document.getElementById('today-total').textContent = '0';
+          return;
+        }
+        const dateKey = date;
+        const shiftKey = `shift${currentShift}`;
+        const container = document.getElementById('today-labels');
+        container.innerHTML = '';
+        let totalLabels = 0;
+        if (labelData[dateKey] && labelData[dateKey][shiftKey]) {
+          const codes = Object.keys(labelData[dateKey][shiftKey]);
+          if (codes.length === 0) {
+            container.innerHTML = '<p>Não há etiquetas registradas para hoje neste turno.</p>';
+          } else {
+            const table = document.createElement('table');
+            table.innerHTML = `
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Excluída</th>
+                  <th>Errada</th>
+                  <th>Sem Etiqueta</th>
+                  <th>Clonada</th>
+                  <th>Reprocesso</th>
+                  <th>Outros</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            `;
+            const tbody = table.querySelector('tbody');
+            codes.forEach(code => {
+              const item = labelData[dateKey][shiftKey][code];
+              let outrosTotal = 0;
+              for (const key in item.outros) {
+                outrosTotal += item.outros[key];
+              }
+              const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${code}</td>
+                <td>${item.excluida || 0}</td>
+                <td>${item.errada || 0}</td>
+                <td>${item['sem-etiqueta'] || 0}</td>
+                <td>${item.clonada || 0}</td>
+                <td>${item.reprocesso || 0}</td>
+                <td>${outrosTotal}</td>
+                <td><strong>${item.total}</strong></td>
+              `;
+              tbody.appendChild(row);
+              totalLabels += item.total;
+            });
+            container.appendChild(table);
+          }
+        } else {
+          container.innerHTML = '<p>Não há etiquetas registradas para hoje neste turno.</p>';
+        }
+        document.getElementById('today-total').textContent = totalLabels;
+      }
+
+      function generateReport() {
+        const date = document.getElementById('report-date').value;
+        const shift = document.getElementById('report-shift').value;
+        const container = document.getElementById('report-result');
+        container.innerHTML = '';
+        if (!date) {
+          showNotification('Por favor, selecione uma data para o relatório.');
+          return;
+        }
+        const dateKey = date;
+        let report = {};
+        let totalLabels = 0;
+        if (shift === 'all') {
+          if (labelData[dateKey]) {
+            ['shift1', 'shift2'].forEach(shiftKey => {
+              if (labelData[dateKey][shiftKey]) {
+                Object.keys(labelData[dateKey][shiftKey]).forEach(code => {
+                  if (!report[code]) {
+                    report[code] = {
+                      excluida: 0,
+                      errada: 0,
+                      'sem-etiqueta': 0,
+                      clonada: 0,
+                      reprocesso: 0,
+                      outros: {},
+                      total: 0
+                    };
+                  }
+                  report[code].excluida += labelData[dateKey][shiftKey][code].excluida || 0;
+                  report[code].errada += labelData[dateKey][shiftKey][code].errada || 0;
+                  report[code]['sem-etiqueta'] += labelData[dateKey][shiftKey][code]['sem-etiqueta'] || 0;
+                  report[code].clonada += labelData[dateKey][shiftKey][code].clonada || 0;
+                  report[code].reprocesso += labelData[dateKey][shiftKey][code].reprocesso || 0;
+                  for (const k in labelData[dateKey][shiftKey][code].outros) {
+                    if (!report[code].outros[k]) {
+                      report[code].outros[k] = 0;
+                    }
+                    report[code].outros[k] += labelData[dateKey][shiftKey][code].outros[k];
+                  }
+                  report[code].total += labelData[dateKey][shiftKey][code].total;
+                  totalLabels += labelData[dateKey][shiftKey][code].total;
+                });
+              }
+            });
+          }
+        } else {
+          const shiftKey = `shift${shift}`;
+          if (labelData[dateKey] && labelData[dateKey][shiftKey]) {
+            Object.keys(labelData[dateKey][shiftKey]).forEach(code => {
+              report[code] = { ...labelData[dateKey][shiftKey][code] };
+              totalLabels += report[code].total;
+            });
+          }
+        }
+        if (Object.keys(report).length === 0) {
+          container.innerHTML = '<p>Não há dados para o período selecionado.</p>';
+        } else {
+          const formattedDate = formatDate(date);
+          const shiftText = shift === '1' ? 'Primeiro Turno' : shift === '2' ? 'Segundo Turno' : 'Ambos os Turnos';
+          const header = document.createElement('div');
+          header.innerHTML = `<h3>Relatório de Etiquetas - ${formattedDate} - ${shiftText}</h3>`;
+          container.appendChild(header);
+          const table = document.createElement('table');
+          table.id = 'report-table';
+          table.innerHTML = `
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Excluída</th>
+                <th>Errada</th>
+                <th>Sem Etiqueta</th>
+                <th>Clonada</th>
+                <th>Reprocesso</th>
+                <th>Outros</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          `;
+          const tbody = table.querySelector('tbody');
+          Object.keys(report).forEach(code => {
+            const item = report[code];
+            let outrosTotal = 0;
+            let outrosDetalhes = [];
+            for (const key in item.outros) {
+              outrosTotal += item.outros[key];
+              outrosDetalhes.push(`${key}: ${item.outros[key]}`);
+            }
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${code}</td>
+              <td>${item.excluida || 0}</td>
+              <td>${item.errada || 0}</td>
+              <td>${item['sem-etiqueta'] || 0}</td>
+              <td>${item.clonada || 0}</td>
+              <td>${item.reprocesso || 0}</td>
+              <td>${outrosTotal} ${outrosDetalhes.length ? `(${outrosDetalhes.join(', ')})` : ''}</td>
+              <td><strong>${item.total}</strong></td>
+            `;
+            tbody.appendChild(row);
+          });
+          container.appendChild(table);
+          const totalElement = document.createElement('div');
+          totalElement.className = 'total-box';
+          totalElement.innerHTML = `
+            <div class="total-label">Total de etiquetas:</div>
+            <div class="total-value">${totalLabels}</div>
+          `;
+          container.appendChild(totalElement);
+        }
+      }
+
+      function exportToPDF() {
+        const reportTable = document.getElementById('report-table');
+        if (!reportTable) {
+          showNotification('Por favor, gere um relatório primeiro.');
+          return;
+        }
+        const date = document.getElementById('report-date').value;
+        const shift = document.getElementById('report-shift').value;
+        const formattedDate = formatDate(date);
+        const shiftText = shift === '1' ? 'Primeiro Turno' : shift === '2' ? 'Segundo Turno' : 'Ambos os Turnos';
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('Relatório de Geração de Etiquetas', 14, 15);
+        doc.setFontSize(12);
+        doc.text(`Data: ${formattedDate} - Turno: ${shiftText}`, 14, 25);
+        doc.autoTable({
+          html: '#report-table',
+          startY: 35,
+          theme: 'grid',
+          styles: { fontSize: 10, cellPadding: 3 },
+          headStyles: { fillColor: [0, 122, 255], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [245, 245, 247] }
+        });
+        const totalLabels = document.querySelector('#report-result .total-value').textContent;
+        const finalY = doc.autoTable.previous.finalY || 40;
+        doc.text(`Total de etiquetas: ${totalLabels}`, 14, finalY + 10);
+        const fileName = `relatorio_etiquetas_${date.replace(/-/g, '')}_turno${shift}.pdf`;
+        doc.save(fileName);
+      }
+
+      function saveData() {
+        localStorage.setItem('labelControlData', JSON.stringify(labelData));
+      }
+
+      function loadData() {
+        const savedData = localStorage.getItem('labelControlData');
+        if (savedData) {
+          labelData = JSON.parse(savedData);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
